@@ -1,151 +1,180 @@
-from tkinter import *
+import tkinter as tk
 
-root = Tk()
-root.geometry("300x445")
-root.title("E-Math")
+LARGE_FONT_STYLE = ("Arial", 40, "bold")
+SMALL_FONT_STYLE = ("Arial", 16)
+DIGITS_FONT_STYLE = ("Arial", 24, "bold")
+DEFAULT_FONT_STYLE = ("Arial", 20)
 
-bar = Entry(root,width=50,font=("Nunito",28,"normal"),fg="#333333",bg="#481d24", bd=2, justify=RIGHT)
-bar.place(x=0,y=3, width=300, height=120)
+OFF_WHITE = "#F8FAFF"
+WHITE = "#FFFFFF"
+GREEN = "#9DC08B"
+LIGHT_GRAY = "#F5F5F5"
+LABEL_COLOR = "#40513B"
+BLUE = "#3A98B9"
+ORANGE = "#F2921D"
+GREY = "#AA77FF"
 
-X = 75
-Y = 100
 
-###################################################################################################
+class Calculator:
+    def __init__(self):
+        self.window = tk.Tk()
+        self.window.geometry("375x667")
+        self.window.resizable(0, 0)
+        self.window.title("Calculator Rayya")
 
-def insert(num):
-    bar['fg']="white"
-    text = bar.get()
-    if (text.split() == []) and (num=="/" or num=="*" or num==")"):
-        num = ''
-        
-    elif (text.endswith('')) and (num=="+" or num=="-" or num=="/" or num==""):
-        BackSpace()
-    elif (text.endswith('/')) and (num=="+" or num=="-" or num=="/" or num=="*"):
-        BackSpace()
-    elif (text.endswith('+')) and (num=="+" or num=="-" or num=="/" or num=="*"):
-        BackSpace()
-    elif (text.endswith('-')) and (num=="+" or num=="-" or num=="/" or num=="*"):
-        BackSpace()
+        self.total_expression = ""
+        self.current_expression = ""
+        self.display_frame = self.create_display_frame()
 
-    elif (text.endswith('.')) and (num=="." or num=="+" or num=="-" or num=="/" or num=="*"):
-        num=''
-    bar.insert(END,num)
+        self.total_label, self.label = self.create_display_labels()
 
-def BackSpace():
-    bar['fg']="white"
-    try:
-        text = bar.get()
-        l = list(text)
-        l.pop()
-        Text = ""
-        for i in range(len(l)):
-            Text += l[i]
-        bar.delete(0,END)
-        bar.insert(0,Text)
-    except:
-        None
-        
-def Delete():
-    bar['fg']="white"
-    bar.delete(0,END)
+        self.digits = {
+            7: (1, 1), 8: (1, 2), 9: (1, 3),
+            4: (2, 1), 5: (2, 2), 6: (2, 3),
+            1: (3, 1), 2: (3, 2), 3: (3, 3),
+            0: (4, 2), '.': (4, 1)
+        }
+        self.operations = {"/": "\u00F7", "*": "\u00D7", "-": "-", "+": "+"}
+        self.buttons_frame = self.create_buttons_frame()
 
-def BracketCheck():
-    text = str(bar.get())
-    Text = list(text)
-    a=0
-    for i in range(len(Text)):
-        if Text[i] == "(":
-            a+=1
-    b=0
-    for i in range(len(Text)):
-        if Text[i] == ")":
-            b+=1
-    Add = a-b
-    return Add
+        self.buttons_frame.rowconfigure(0, weight=1)
+        for x in range(1, 5):
+            self.buttons_frame.rowconfigure(x, weight=1)
+            self.buttons_frame.columnconfigure(x, weight=1)
+        self.create_digit_buttons()
+        self.create_operator_buttons()
+        self.create_special_buttons()
+        self.bind_keys()
 
-def Answer():
-    text = str(bar.get())
+    def bind_keys(self):
+        self.window.bind("<Return>", lambda event: self.evaluate())
+        for key in self.digits:
+            self.window.bind(str(key), lambda event, digit=key: self.add_to_expression(digit))
 
-    Add = BracketCheck()
-    if Add>0:
-        bar.insert(END,Add*")")
-    
-    else:
+        for key in self.operations:
+            self.window.bind(key, lambda event, operator=key: self.append_operator(operator))
+
+    def create_special_buttons(self):
+        self.create_clear_button()
+        self.create_equals_button()
+        self.create_square_button()
+        self.create_sqrt_button()
+        self.create_clearone_button()
+
+    def create_display_labels(self):
+        total_label = tk.Label(self.display_frame, text=self.total_expression, anchor=tk.E, bg=LIGHT_GRAY,
+                               fg=LABEL_COLOR, padx=24, font=SMALL_FONT_STYLE)
+        total_label.pack(expand=True, fill='both')
+
+        label = tk.Label(self.display_frame, text=self.current_expression, anchor=tk.E, bg=LIGHT_GRAY,
+                         fg=LABEL_COLOR, padx=24, font=LARGE_FONT_STYLE)
+        label.pack(expand=True, fill='both')
+
+        return total_label, label
+
+    def create_display_frame(self):
+        frame = tk.Frame(self.window, height=221, bg=LIGHT_GRAY)
+        frame.pack(expand=True, fill="both")
+        return frame
+
+    def add_to_expression(self, value):
+        self.current_expression += str(value)
+        self.update_label()
+
+    def create_digit_buttons(self):
+        for digit, grid_value in self.digits.items():
+            button = tk.Button(self.buttons_frame, text=str(digit), bg=WHITE, fg=LABEL_COLOR, font=DIGITS_FONT_STYLE,
+                               borderwidth=5, command=lambda x=digit: self.add_to_expression(x))
+            button.grid(row=grid_value[0], column=grid_value[1], sticky=tk.NSEW)
+
+    def append_operator(self, operator):
+        self.current_expression += operator
+        self.total_expression += self.current_expression
+        self.current_expression = ""
+        self.update_total_label()
+        self.update_label()
+
+    def create_operator_buttons(self):
+        i = 0
+        for operator, symbol in self.operations.items():
+            button = tk.Button(self.buttons_frame, text=symbol, bg=OFF_WHITE, fg=ORANGE, font=DEFAULT_FONT_STYLE,
+                               borderwidth=5, command=lambda x=operator: self.append_operator(x))
+            button.grid(row=i, column=4, sticky=tk.NSEW)
+            i += 1
+
+    def clear(self):
+        self.current_expression = ""
+        self.total_expression = ""
+        self.update_label()
+        self.update_total_label()
+
+    def create_clear_button(self):
+        button = tk.Button(self.buttons_frame, text="C", bg=GREY, fg=WHITE, font=DEFAULT_FONT_STYLE,
+                           borderwidth=5, command=self.clear)
+        button.grid(row=0, column=1, sticky=tk.NSEW)
+
+    def clearone(self):
+        self.current_expression = self.current_expression[:-1]
+        self.update_label()
+
+    def create_clearone_button(self):
+        button = tk.Button(self.buttons_frame, text="Del", bg=GREY, fg=WHITE, font=DEFAULT_FONT_STYLE,
+                           borderwidth=5, command=self.clearone)
+        button.grid(row=0, column=2, sticky=tk.NSEW)
+
+    def square(self):
+        self.current_expression = str(eval(f"{self.current_expression}**2"))
+        self.update_label()
+
+    def create_square_button(self):
+        button = tk.Button(self.buttons_frame, text="x\u00b2", bg=OFF_WHITE, fg=ORANGE, font=DEFAULT_FONT_STYLE,
+                           borderwidth=5, command=self.square)
+        button.grid(row=0, column=2, sticky=tk.NSEW)
+
+    def sqrt(self):
+        self.current_expression = str(eval(f"{self.current_expression}**0.5"))
+        self.update_label()
+
+    def create_sqrt_button(self):
+        button = tk.Button(self.buttons_frame, text="\u221ax", bg=OFF_WHITE, fg=ORANGE, font=DEFAULT_FONT_STYLE,
+                           borderwidth=5, command=self.sqrt)
+        button.grid(row=0, column=3, sticky=tk.NSEW)
+
+    def evaluate(self):
+        self.total_expression += self.current_expression
+        self.update_total_label()
         try:
-            answer = eval(text)
-            Delete()
-            bar.insert(0,answer)
-            bar['fg'] = "white"
-        except:
-            bar['fg'] = "red"
+            self.current_expression = str(eval(self.total_expression))
 
-###################################################################################################
+            self.total_expression = ""
+        except Exception as e:
+            self.current_expression = "Error"
+        finally:
+            self.update_label()
 
-n1 = Button(root,text="1",font=("Nunito",16,"bold"),padx=27,pady=20,bd=2,bg="#ffc857",fg='white',command=lambda:insert("1"))
-n1.place(x=0,y=Y+45)
+    def create_equals_button(self):
+        button = tk.Button(self.buttons_frame, text="=", bg=GREY, fg=WHITE, font=DEFAULT_FONT_STYLE,
+                           borderwidth=5, command=self.evaluate)
+        button.grid(row=4, column=3, columnspan=2, sticky=tk.NSEW)
 
-n2 = Button(root,text="2",font=("Nunito",16,"bold"),padx=26,pady=20,bd=2,bg="#ffc857",fg='white',command=lambda:insert("2"))
-n2.place(x=X,y=Y+45)
+    def create_buttons_frame(self):
+        frame = tk.Frame(self.window)
+        frame.pack(expand=True, fill="both")
+        return frame
 
-n3 = Button(root,text="3",font=("Nunito",16,"bold"),padx=26,pady=20,bd=2,bg="#ffc857",fg='white',command=lambda:insert("3"))
-n3.place(x=2*X,y=Y+45)
+    def update_total_label(self):
+        expression = self.total_expression
+        for operator, symbol in self.operations.items():
+            expression = expression.replace(operator, f' {symbol} ')
+        self.total_label.config(text=expression)
 
-n4 = Button(root,text="4",font=("Nunito",16,"bold"),padx=26,pady=20,bd=2,bg="#ffc857",fg='white',command=lambda:insert("4"))
-n4.place(x=0,y=(2*Y)+20)
+    def update_label(self):
+        self.label.config(text=self.current_expression[:11])
 
-n5 = Button(root,text="5",font=("Nunito",16,"bold"),padx=26,pady=20,bd=2,bg="#ffc857",fg='white',command=lambda:insert("5"))
-n5.place(x=X,y=(2*Y)+20)
-
-n6 = Button(root,text="6",font=("Nunito",16,"bold"),padx=26,pady=20,bd=2,bg="#ffc857",fg='white',command=lambda:insert("6"))
-n6.place(x=2*X,y=(2*Y)+20)
-
-n7 = Button(root,text="7",font=("Nunito",16,"bold"),padx=26,pady=20,bd=2,bg="#ffc857",fg='white',command=lambda:insert("7"))
-n7.place(x=0,y=(3*Y)-5)
-
-n8 = Button(root,text="8",font=("Nunito",16,"bold"),padx=26,pady=20,bd=2,bg="#ffc857",fg='white',command=lambda:insert("8"))
-n8.place(x=X,y=(3*Y)-5)
-
-n9 = Button(root,text="9",font=("Nunito",16,"bold"),padx=26,pady=20,bd=2,bg="#ffc857",fg='white',command=lambda:insert("9"))
-n9.place(x=2*X,y=(3*Y)-5)
-
-n0 = Button(root,text="0",font=("Nunito",16,"bold"),padx=26,pady=20,bd=2,bg="#ffc857",fg='white',command=lambda:insert("0"))
-n0.place(x=X,y=(4*Y)-30)
+    def run(self):
+        self.window.mainloop()
 
 
-####################################################################################################
-
-dot = Button(root,text=".",font=("Nunito",16,"bold"),padx = 28, pady = 20, bd =2,bg="#e9724c", fg='#ffffff',command=lambda:insert("."))
-dot.place(x=0,y=(4*Y)-30)
-
-equal = Button(root,text="=",font=("Nunito",16,"bold"),padx = 26, pady = 20, bd =2,bg="#e9724c",command=Answer)
-equal.place(x=2*X,y=(4*Y)-30)
-
-####################################################################################################
-
-mult = Button(root,text="X",font=("Nunito",16,"bold"),padx = 24, pady = 20, bd =2,bg="#e9724c", fg='#000000', command=lambda:insert("*"))
-mult.place(x=3*X,y=Y+45)
-
-div = Button(root,text="/",font=("Nunito",16,"bold"),padx = 28, pady = 20, bd =2,bg="#e9724c", fg='#000000',command=lambda:insert("/"))
-div.place(x=3*X,y=(2*Y)+20)
-
-plus = Button(root,text="+",font=("Nunito",16,"bold"),padx = 26, pady = 20, bd =2,bg="#e9724c", fg='#000000',command=lambda:insert("+"))
-plus.place(x=3*X,y=(3*Y)-5)
-
-minus = Button(root,text="-",font=("Nunito",16,"bold"),padx = 28, pady = 20, bd =2,bg="#e9724c", fg='#000000',command=lambda:insert("-"))
-minus.place(x=3*X,y=(4*Y)-30)
-
-#####################################################################################################
-
-AC = Button(root,text="AC",font=("Nunito",16,"bold"),padx = 24,pady = 8,bd =2,bg="#e9724c", fg='#000000',command=Delete)
-AC.place(x=0,y=Y-6)
-
-back = Button(root,text=u"\u2190",font=("Nunito",16,"bold"),padx = 24,pady = 8,bd =2,bg="#e9724c", fg='#000000',command=BackSpace)
-back.place(x=X,y=Y-6)
-
-Open = Button(root,text="(",font=("Nunito",16,"bold"),padx = 28,pady = 8,bd =2,bg="#e9724c", fg='#000000',command=lambda:insert("("))
-Open.place(x=2*X,y=Y-6)
-
-Close = Button(root,text=")",font=("Nunito",16,"bold"),padx = 28,pady = 8,bd =2,bg="#e9724c", fg='#000000',command=lambda:insert(")"))
-Close.place(x=3*X,y=Y-6)
-
-root.mainloop()
+if __name__ == "__main__":
+    calc = Calculator()
+    calc.run()
